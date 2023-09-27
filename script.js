@@ -5,6 +5,10 @@ const modal = document.getElementById("modal");
 const modalContent = document.getElementById("modal-content");
 const message = document.getElementById("message");
 const topScores = document.getElementById("scores");
+const upButton = document.getElementById("upButton");
+const downButton = document.getElementById("downButton");
+const leftButton = document.getElementById("leftButton");
+const rightButton = document.getElementById("rightButton");
 const cellSize = 25;
 const scores = [];
 let snake = [{ x: 2, y: 2 }];
@@ -12,7 +16,7 @@ let food = { x: 10, y: 10 };
 let mouse = { x: 15, y: 15 };
 let direction = "right";
 let isGameOver = false;
-let speed = 100;
+let speed = 120;
 let score = 0;
 let foodEaten = 0;
 let intervalId = null;
@@ -90,7 +94,6 @@ function stopGame() {
   addScore(score);
   displayScores();
   restartButton.addEventListener("click", restartGame);
-  gameBoard.style.opacity = 0.5;
 }
 
 function restartGame() {
@@ -105,6 +108,8 @@ function restartGame() {
   foodEaten = 0;
   updateScore();
   updateFoodEaten();
+  clearInterval(intervalId);
+  speed = 100;
   startGame();
 }
 
@@ -118,7 +123,7 @@ function updateScore() {
 }
 
 function increaseDifficulty() {
-  speed -= 10;
+  speed -= 8;
   clearInterval(intervalId);
   intervalId = setInterval(() => { move(); draw(); }, speed);
 }
@@ -137,6 +142,22 @@ function displayScores() {
     scoreList.appendChild(listItem);
   });
 }
+
+upButton.addEventListener("click", () => {
+  direction = "up";
+});
+
+downButton.addEventListener("click", () => {
+  direction = "down";
+});
+
+leftButton.addEventListener("click", () => {
+  direction = "left";
+});
+
+rightButton.addEventListener("click", () => {
+  direction = "right";
+});
 
 document.addEventListener("keydown", (event) => {
   switch (event.key) {
