@@ -106,10 +106,10 @@ function restartGame() {
   gameBoard.style.opacity = 1;
   score = 0;
   foodEaten = 0;
+  speed = 100;
+  clearInterval(intervalId);
   updateScore();
   updateFoodEaten();
-  clearInterval(intervalId);
-  speed = 100;
   startGame();
 }
 
