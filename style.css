@@ -237,12 +237,12 @@ body {
 
 @media screen and (max-width: 768px) {
   #game-board {
-    width: 500px;
-    height: 400px;
+    width: 650px;
+    height: 550px;
   }
 
   .tabl {
-    top: 32%;
+    top: 18%;
     width: 400px;
   }
 
@@ -281,7 +281,7 @@ body {
 @media screen and (max-width: 500px) {
   #game-board {
     width: 100%;
-    height: 35vh;
+    height: 50%;
   }
 
   .tabl {
@@ -327,10 +327,10 @@ body {
 }
 
 /* Afficher les boutons de contrôle en dessous de 576px */
-@media (max-width: 576px) {
+@media (max-width: 768px) {
   #controls {
     position: absolute;
-    bottom: 20vh;
+    bottom: 10%;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
