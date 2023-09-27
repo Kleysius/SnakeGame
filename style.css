@@ -1,0 +1,237 @@
+@import url('https://fonts.googleapis.com/css2?family=Handjet&family=Inclusive+Sans&display=swap');
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+body {
+    background-color: #303030;
+    font-family: 'Handjet', cursive;
+    color: #A0C431;
+    height: 100vh;
+}
+
+#game-board {
+    position: relative;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 700px;
+    height: 600px;
+    background-image: url('images/background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 15px;
+    box-shadow: 0 0 20px -5px #000000;
+}
+
+.snake-head {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    background-image: url('images/snake-head.svg');
+    scale: 1.5;
+    transition: transform 0.2s ease-in-out;
+}
+
+.snake-body {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    box-shadow: 0 0 20px -5px #000000;
+    background-color: #A0C431;
+}
+
+.food {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background-image: url('images/apple.svg');
+    scale: 1.25;
+}
+
+.mouse {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background-image: url('images/mouse.svg');
+    scale: 1.25;
+}
+
+.tabl {
+    position: absolute;
+    top: 16%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 600px;
+}
+
+#food-eaten {
+    display: flex;
+    align-items: center;
+    font-family: 'Inclusive Sans', sans-serif;
+    font-size: 1.75rem;
+    font-weight: 500;
+    color: #77B255;
+}
+
+#food-eaten img {
+    width: 30px;
+    height: 30px;
+    margin-right: 20px;
+}
+
+#score {
+    display: flex;
+    align-items: center;
+    font-family: 'Inclusive Sans', sans-serif;
+    font-size: 1.75rem;
+    font-weight: 500;
+    color: #c4a931;
+}
+
+#score img {
+    width: 30px;
+    height: 30px;
+    margin-right: 20px;
+}
+
+#modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+#modal-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#modal-content h1 {
+    font-size: 5rem;
+    font-weight: 500;
+    text-shadow: 0 0 5px #030303;
+    padding: 20px 0;
+    margin-bottom: 20px;
+}
+
+#modal-content p {
+    font-size: 2rem;
+    font-weight: 500;
+    text-shadow: 0 0 5px #030303;
+    padding: 20px 0;
+    margin-bottom: 20px;
+}
+
+#startButton {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+#startButton i {
+    font-size: 3rem;
+    color: #fff;
+    transition: color 0.2s ease-in-out;
+}
+
+#startButton i:hover {
+    color: #A0C431;
+    text-shadow: 0 0 20px #77B255;
+}
+
+#message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#message p {
+    font-size: 4rem;
+    color: #c43131;
+    margin-bottom: 20px;
+    text-shadow: 0 0 5px #030303;
+}
+
+#scores {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 25px;
+    border-radius: 15px;
+    background-color: #303030;
+    box-shadow: 0 0 20px -5px #000000;
+    border: 2px solid #c4a931;
+}
+
+#scores i {
+    font-size: 2rem;
+    color: #c4a931;
+    margin-bottom: 20px;
+    text-shadow: 0 0 5px #030303;
+}
+
+#scores h2 {
+    font-size: 2.25rem;
+    font-weight: 500;
+    color: #c4a931;
+    margin-bottom: 10px;
+    text-shadow: 0 0 5px #030303;
+}
+
+#scores ul {
+    list-style: none;
+}
+
+#scores ul li {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #77B255;
+    margin-bottom: 10px;
+    text-shadow: 0 0 5px #030303;
+}
+
+#restartButton {
+    font-family: 'Inclusive Sans', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    background-color: #c43131;
+    box-shadow: 0 0 20px -1px #000000;
+    border: none;
+    border-radius: 50%;
+    margin-bottom: 30px;
+    padding: 10px;
+    font-size: 2rem;
+    color: #fff;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease-in-out;
+}
+
+#restartButton:hover {
+    box-shadow: 0 0 20px 5px #c43131;
+}
