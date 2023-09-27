@@ -287,13 +287,24 @@ body {
 
 @media screen and (max-width: 500px) {
   .container {
-    width: 326px;
-    height: 280px;
+    width: 100%;
+    height: calc(100vw - 60px);
   }
 
   .tabl {
     top: -28px;
     width: 250px;
+  }
+
+  .snake-head,
+  .food,
+  .mouse {
+    scale: 1;
+  }
+
+  .snake-body {
+    width: 20px;
+    height: 20px;
   }
 
   #score,
@@ -328,7 +339,6 @@ body {
   }
 }
 
-
 #controls {
   display: none;
 }
@@ -354,24 +364,24 @@ body {
     align-items: center;
   }
 
-    .upDown button,
-    .leftRight button {
-        background-color: transparent;
-        border: none;
-        padding: 10px;
-        cursor: pointer;
-    }
+  .upDown button,
+  .leftRight button {
+    background-color: transparent;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+  }
 
-    .upDown button i,
-    .leftRight button i {
-        font-size: 2.5rem;
-        color: #fff;
-        transition: color 0.2s ease-in-out;
-    }
+  .upDown button i,
+  .leftRight button i {
+    font-size: 2.5rem;
+    color: #fff;
+    transition: color 0.2s ease-in-out;
+  }
 
-    .upDown button i:hover,
-    .leftRight button i:hover {
-        color: #a0c431;
-        text-shadow: 0 0 20px #77b255;
-    }
+  .upDown button i:hover,
+  .leftRight button i:hover {
+    color: #a0c431;
+    text-shadow: 0 0 20px #77b255;
+  }
 }
