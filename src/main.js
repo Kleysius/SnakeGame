@@ -2,8 +2,8 @@
 // → dying → over), a fixed-timestep loop driven by requestAnimationFrame, and
 // the glue between game events and UI / sound / visual effects.
 
-import { GRID, MODES, tickInterval } from "./config.js";
-import { createGame, step, queueDirection, comboMultiplier, comboProgress } from "./game.js";
+import { GRID, MODES, RULES } from "./config.js";
+import { createGame, step, queueDirection, comboMultiplier, comboProgress, multiplier, tickDuration } from "./game.js";
 import { Renderer } from "./renderer.js";
 import { bindInput } from "./input.js";
 import { autopilot } from "./autopilot.js";
@@ -18,15 +18,23 @@ const ui = {
   score: $("#hud-score"),
   best: $("#hud-best"),
   level: $("#hud-level"),
-  combo: $("#combo"),
-  comboLabel: $("#combo-label"),
+  mult: $("#mult"),
+  multTotal: $("#mult-total"),
+  chipCombo: $("#chip-combo"),
+  chipComboVal: $("#chip-combo-val"),
+  chipFever: $("#chip-fever"),
+  chipSpicy: $("#chip-spicy"),
   comboBar: $("#combo-bar"),
+  fever: $("#fever"),
+  feverFill: $("#fever-fill"),
+  banner: $("#banner"),
   pauseBtn: $("#btn-pause"),
   muteBtn: $("#btn-mute"),
   countdown: $("#countdown"),
   toast: $("#toast"),
   screens: {
     menu: $("#screen-menu"),
+    help: $("#screen-help"),
     pause: $("#screen-pause"),
     over: $("#screen-over"),
   },
@@ -59,10 +67,18 @@ let phaseTime = 0;
 let startedAt = 0;
 let shownScore = 0;
 let toastTimer = 0;
+let bannerTimer = 0;
+
+// Which overlay screen belongs to which phase.
+const SCREEN_OF = { menu: "menu", help: "help", paused: "pause", over: "over" };
+const isDemo = () => phase === "menu" || phase === "help";
 
 // ---- Game lifecycle ---------------------------------------------------------
 
 function newGame() {
+  bannerQueue.length = 0;
+  clearTimeout(bannerTimer);
+  ui.banner.classList.remove("pop");
   game = createGame({ ...GRID, wrap: MODES[settings.mode].wrap });
   prevSnake = clone(game.snake);
   acc = 0;
@@ -76,7 +92,7 @@ function setPhase(next) {
   phaseTime = 0;
   ui.app.dataset.phase = next;
   for (const [name, el] of Object.entries(ui.screens)) {
-    const visible = (name === "menu" && next === "menu") || (name === "pause" && next === "paused") || (name === "over" && next === "over");
+    const visible = SCREEN_OF[next] === name;
     el.hidden = !visible;
     if (visible) requestAnimationFrame(() => el.querySelector("[data-autofocus]")?.focus({ preventScroll: true }));
   }
@@ -129,12 +145,16 @@ function finishGame() {
   ui.overRecord.hidden = rank !== 0;
   animateNumber(ui.overScore, game.score, 900);
 
+  const s = game.stats;
   const stats = [
-    ["Pommes", game.eaten - game.miceEaten],
+    ["Pommes", game.eaten - game.miceEaten - s.chilis],
     ["Souris", game.miceEaten],
     ["Niveau", game.level],
-    ["Combo max", `×${Math.min(game.maxCombo, 5) || 1}`],
-    ["Taille", game.snake.length],
+    ["Combo max", `×${Math.min(game.maxCombo, RULES.maxCombo) || 1}`],
+    ["🪢 Lassos", s.lassos],
+    ["😬 Frôlés", s.nearMisses],
+    ["🌈 Frénésies", s.fevers],
+    ["Meilleur coup", s.bestHit.toLocaleString("fr-FR")],
     ["Durée", formatDuration(duration)],
   ];
   ui.overStats.replaceChildren(
@@ -161,15 +181,17 @@ function frame(now) {
   phaseTime += dt;
   const time = now / 1000;
 
-  if (phase === "menu" || phase === "playing") {
-    const demo = phase === "menu";
-    const interval = demo ? 85 : tickInterval(game.level);
+  if (isDemo() || phase === "playing") {
+    const demo = isDemo();
+    let interval = demo ? 85 : tickDuration(game);
     acc += dt * 1000;
     while (acc >= interval && game.alive) {
       acc -= interval;
       if (demo || AUTOPILOT) queueDirection(game, autopilot(game));
       prevSnake = clone(game.snake);
       handleEvents(step(game), demo);
+      if (!demo) rhythm();
+      interval = demo ? 85 : tickDuration(game);
     }
     alpha = Math.min(1, acc / interval);
     // Restart the demo a short beat after the autopilot crashes.
@@ -201,16 +223,26 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+/** Per-tick music: frenzy bass line and a racing heartbeat under the chili. */
+function rhythm() {
+  if (!game.alive) return;
+  if (game.fever > 0) sfx.feverBeat(game.tick);
+  else if (game.spicy > 0 && game.tick % 5 === 0) sfx.heartbeat();
+}
+
+const EAT_COLORS = { apple: "#ff4d6d", golden: "#ffd23f", mouse: "#e2e8f0", chili: "#ff7a1a" };
+
 function handleEvents(events, demo) {
   const head = game.snake[0];
   for (const e of events) {
     switch (e.type) {
       case "eat": {
-        const colors = { apple: "#ff4d6d", golden: "#ffd23f", mouse: "#e2e8f0" };
-        renderer.burst(e.x, e.y, colors[e.kind], e.kind === "apple" ? 14 : 26, e.kind === "apple" ? 1 : 1.4);
+        const big = e.kind !== "apple";
+        renderer.burst(e.x, e.y, EAT_COLORS[e.kind], big ? 26 : 14, big ? 1.4 : 1);
         if (demo) break;
-        const label = e.multiplier > 1 ? `+${e.points} ×${e.multiplier}` : `+${e.points}`;
-        renderer.floatText(e.x, e.y - 0.6, label, e.kind === "golden" ? "#ffd23f" : e.multiplier > 1 ? "#5eead4" : "#fff");
+        const label = e.multiplier > 1 ? `+${e.points.toLocaleString("fr-FR")} ×${e.multiplier}` : `+${e.points}`;
+        const color = e.lasso ? "#ffd23f" : e.fever ? `hsl(${(performance.now() / 4) % 360}, 95%, 70%)` : e.spicy ? "#ff9a3c" : e.kind === "golden" ? "#ffd23f" : e.multiplier > 1 ? "#5eead4" : "#fff";
+        renderer.floatText(e.x, e.y - 0.6, label, color);
         if (e.kind === "golden") {
           sfx.golden();
           renderer.ripple(e.x, e.y, "#ffd23f");
@@ -219,12 +251,56 @@ function handleEvents(events, demo) {
         } else if (e.kind === "mouse") {
           sfx.mouse();
           renderer.shake(0.15);
-        } else sfx.eat(e.multiplier);
+        } else if (e.kind !== "chili" && !e.lasso) sfx.eat(e.multiplier);
+        if (e.multiplier >= 15) renderer.shake(0.3);
         ui.score.parentElement.classList.remove("bump");
         void ui.score.offsetWidth;
         ui.score.parentElement.classList.add("bump");
         break;
       }
+      case "lasso":
+        renderer.lasso(e.cells);
+        if (demo) break;
+        sfx.lasso();
+        renderer.ripple(e.x, e.y, "#ffd23f");
+        renderer.shake(0.2);
+        showBanner("LASSO !", `×${RULES.lassoMultiplier}`, "lasso");
+        navigator.vibrate?.(30);
+        break;
+      case "nearMiss":
+        if (demo) break;
+        sfx.nearMiss();
+        renderer.spark(e.hx, e.hy, e.x, e.y);
+        renderer.floatText(e.hx, e.hy - 0.8, `Frôlé ! +${e.points}`, "#a5f3fc");
+        break;
+      case "feverStart":
+        if (demo) break;
+        sfx.feverStart();
+        renderer.flash("#ffffff", 0.3);
+        renderer.ripple(head.x, head.y, "#f0abfc");
+        showBanner("FRÉNÉSIE !", "tous les points ×2", "fever");
+        break;
+      case "feverEnd":
+        if (!demo) sfx.feverEnd();
+        break;
+      case "chiliSpawn":
+        if (demo) break;
+        sfx.chiliSpawn();
+        showToast("Un piment ! Oseras-tu ? 🌶️");
+        break;
+      case "spicyStart":
+        if (demo) break;
+        sfx.spicyStart();
+        renderer.flash("#ff5a00", 0.25);
+        renderer.shake(0.35);
+        showBanner("PIMENT !", "×3 · ça va vite !", "spicy");
+        navigator.vibrate?.([20, 30, 20]);
+        break;
+      case "spicyEnd":
+        if (demo) break;
+        sfx.spicyEnd();
+        showToast("Le piment retombe… 😮‍💨");
+        break;
       case "levelUp":
         if (demo) break;
         sfx.levelUp();
@@ -235,7 +311,7 @@ function handleEvents(events, demo) {
       case "mouseSpawn":
         if (!demo) {
           sfx.squeak();
-          showToast("Une souris ! Attrape-la vite 🐭");
+          showToast("Une souris ! Attrape-la… ou piège-la 🪢");
         }
         break;
       case "mouseEscaped":
@@ -267,24 +343,73 @@ function handleEvents(events, demo) {
 let hudCache = {};
 function updateHud(force = false) {
   if (!game) return;
-  const playing = phase !== "menu";
+  const playing = !isDemo();
   const target = playing ? game.score : 0;
   shownScore = force ? target : shownScore + (target - shownScore) * 0.18;
   if (Math.abs(target - shownScore) < 1) shownScore = target;
   const best = Math.max(storage.bestScore(settings.mode), playing ? game.score : 0);
-  const combo = playing ? comboMultiplier(game) : 1;
-  const progress = playing ? comboProgress(game) : 0;
 
   setText("score", ui.score, Math.round(shownScore).toLocaleString("fr-FR"));
   setText("best", ui.best, best.toLocaleString("fr-FR"));
   setText("level", ui.level, playing ? game.level : "–");
-  setText("combo", ui.comboLabel, `×${combo}`);
+
+  // Multiplier breakdown.
+  const combo = playing ? comboMultiplier(game) : 1;
+  const progress = playing ? comboProgress(game) : 0;
+  const fever = playing && game.fever > 0;
+  const spicy = playing && game.spicy > 0;
   const comboOn = combo > 1 && progress > 0;
-  if (hudCache.comboOn !== comboOn || force) {
-    hudCache.comboOn = comboOn;
-    ui.combo.classList.toggle("on", comboOn);
+  const total = playing ? multiplier(game) : 1;
+  const totalText = `×${total}`;
+  if (hudCache.total !== totalText && hudCache.total !== undefined && total > 1) {
+    ui.multTotal.classList.remove("bump");
+    void ui.multTotal.offsetWidth;
+    ui.multTotal.classList.add("bump");
   }
+  setText("total", ui.multTotal, totalText);
+  setText("comboVal", ui.chipComboVal, `×${combo}`);
+  toggle("multOn", ui.mult, "on", total > 1, force);
+  toggle("hot", ui.mult, "hot", spicy, force);
+  toggle("insane", ui.mult, "insane", total >= 15, force);
+  toggle("comboOn", ui.chipCombo, "on", comboOn, force);
+  toggle("feverOn", ui.chipFever, "on", fever, force);
+  toggle("spicyOn", ui.chipSpicy, "on", spicy, force);
   ui.comboBar.style.transform = `scaleX(${progress})`;
+
+  // Frenzy gauge: fills up, then drains while the frenzy lasts.
+  const gauge = !playing ? 0 : fever ? game.fever / RULES.feverTicks : game.feverGauge;
+  ui.feverFill.style.transform = `scaleX(${gauge})`;
+  toggle("feverFull", ui.fever, "full", fever, force);
+}
+
+function toggle(key, el, cls, on, force) {
+  if (hudCache[key] === on && !force) return;
+  hudCache[key] = on;
+  el.classList.toggle(cls, on);
+}
+
+// Banners play one after another so simultaneous events (a lasso that fills
+// the frenzy gauge…) are all celebrated.
+const bannerQueue = [];
+function showBanner(title, subtitle, cls) {
+  bannerQueue.push({ title, subtitle, cls });
+  if (bannerQueue.length === 1) playBanner();
+}
+
+function playBanner() {
+  const b = bannerQueue[0];
+  if (!b) return;
+  ui.banner.className = `banner b-${b.cls}`;
+  ui.banner.innerHTML = `${b.title}<small>${b.subtitle}</small>`;
+  void ui.banner.offsetWidth;
+  ui.banner.classList.add("pop");
+  clearTimeout(bannerTimer);
+  // Hand over early when another banner is waiting.
+  bannerTimer = setTimeout(() => {
+    ui.banner.classList.remove("pop");
+    bannerQueue.shift();
+    playBanner();
+  }, bannerQueue.length > 1 ? 700 : 1100);
 }
 
 function setText(key, el, value) {
@@ -359,7 +484,8 @@ bindInput({
     return true;
   },
   onPause(code) {
-    if (phase === "menu" && code === "Space") startGame();
+    if (phase === "help" && code === "Escape") setPhase("menu");
+    else if (phase === "menu" && code === "Space") startGame();
     else if (phase === "over" && code === "Space") startGame();
     else if (phase === "paused" && code === "Escape") resume();
     else togglePause();
@@ -378,6 +504,8 @@ document.addEventListener("click", (e) => {
     play: startGame,
     resume,
     menu: showMenu,
+    help: () => setPhase("help"),
+    back: () => setPhase("menu"),
     pause: togglePause,
     mute: toggleMute,
   })[action]?.();
@@ -406,6 +534,8 @@ function formatDuration(s) {
   const m = Math.floor(s / 60);
   return m ? `${m}m${String(s % 60).padStart(2, "0")}` : `${s}s`;
 }
+
+if (AUTOPILOT) window.__snake = { get game() { return game; } };
 
 updateMuteButton();
 showMenu();

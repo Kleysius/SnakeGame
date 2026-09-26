@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createGame, step, queueDirection, comboMultiplier } from "../src/game.js";
-import { ITEMS, RULES } from "../src/config.js";
+import { createGame, step, queueDirection, comboMultiplier, multiplier, tickDuration } from "../src/game.js";
+import { ITEMS, RULES, tickInterval } from "../src/config.js";
 
 // Deterministic rng: always 0.99 → never golden, never spawns a mouse.
 const rng = () => 0.99;
@@ -130,4 +130,105 @@ test("levels go up every few items eaten", () => {
   }
   assert.equal(g.level, 2);
   assert.ok(events.some((e) => e.type === "levelUp"));
+});
+
+// ---- Lasso, near miss, chili, frenzy -------------------------------------------
+
+test("closing the body around an item captures it with the lasso bonus", () => {
+  const g = make();
+  // A U-shaped snake around (5,5); moving left from (6,4) to (5,4) seals it.
+  g.snake = [
+    { x: 6, y: 4 },
+    { x: 6, y: 5 },
+    { x: 6, y: 6 },
+    { x: 5, y: 6 },
+    { x: 4, y: 6 },
+    { x: 4, y: 5 },
+    { x: 4, y: 4 },
+    { x: 4, y: 3 },
+  ];
+  g.dir = "up";
+  g.food = { x: 5, y: 5, kind: "apple" };
+  queueDirection(g, "left");
+  const events = step(g);
+  const lasso = events.find((e) => e.type === "lasso");
+  assert.ok(lasso, "expected a lasso event");
+  assert.deepEqual(lasso.cells, [{ x: 5, y: 5 }]);
+  const eat = events.find((e) => e.type === "eat");
+  assert.equal(eat.lasso, true);
+  assert.equal(eat.points, ITEMS.apple.points * RULES.lassoMultiplier);
+  assert.equal(g.grow, ITEMS.apple.grow);
+  assert.ok(g.food && !(g.food.x === 5 && g.food.y === 5));
+});
+
+test("items in the open are never lassoed", () => {
+  const g = make();
+  g.food = { x: 8, y: 1, kind: "apple" };
+  const events = step(g);
+  assert.ok(!events.some((e) => e.type === "lasso"));
+});
+
+test("brushing past the body scores a near miss once per approach", () => {
+  const g = make();
+  g.snake = [
+    { x: 5, y: 3 },
+    { x: 5, y: 4 },
+    { x: 5, y: 5 },
+    { x: 4, y: 5 },
+    { x: 3, y: 5 },
+    { x: 3, y: 4 },
+    { x: 3, y: 3 },
+    { x: 3, y: 2 },
+    { x: 3, y: 1 },
+  ];
+  g.dir = "up";
+  g.grow = 5; // keep the tail in place
+  g.food = { x: 9, y: 9, kind: "apple" };
+  const events = step(g); // head → (5,2), no body next to it
+  assert.ok(!events.some((e) => e.type === "nearMiss"));
+  queueDirection(g, "left");
+  const e2 = step(g); // head → (4,2), next to (3,2)
+  const miss = e2.find((e) => e.type === "nearMiss");
+  assert.ok(miss);
+  assert.equal(miss.points, RULES.nearMissPoints);
+  assert.equal(g.stats.nearMisses, 1);
+  queueDirection(g, "up");
+  const e3 = step(g); // still hugging the body: no second reward
+  assert.ok(!e3.some((e) => e.type === "nearMiss"));
+});
+
+test("eating a chili makes the snake faster and triples points for a while", () => {
+  const g = make({ wrap: true });
+  const head = g.snake[0];
+  g.chili = { x: head.x + 1, y: head.y, ttl: 50, maxTtl: 50 };
+  const events = step(g);
+  assert.ok(events.some((e) => e.type === "spicyStart"));
+  assert.ok(tickDuration(g) < tickInterval(g.level));
+  assert.equal(multiplier(g), comboMultiplier(g) * RULES.spicyMultiplier);
+  g.food = { x: 0, y: 0, kind: "apple" };
+  let ended = false;
+  for (let i = 0; i < RULES.spicyTicks && !ended; i++) ended = step(g).some((e) => e.type === "spicyEnd");
+  assert.ok(ended);
+  assert.equal(tickDuration(g), tickInterval(g.level));
+});
+
+test("an ignored chili withers away", () => {
+  const g = make({ wrap: true });
+  g.food = { x: 0, y: 0, kind: "apple" };
+  g.chili = { x: 0, y: 9, ttl: 2, maxTtl: 2 };
+  step(g);
+  const events = step(g);
+  assert.ok(events.some((e) => e.type === "chiliGone"));
+  assert.equal(g.chili, null);
+});
+
+test("filling the frenzy gauge doubles points", () => {
+  const g = make({ wrap: true });
+  g.feverGauge = 0.95;
+  const head = g.snake[0];
+  g.food = { x: head.x + 1, y: head.y, kind: "apple" };
+  const events = step(g);
+  assert.ok(events.some((e) => e.type === "feverStart"));
+  assert.equal(g.fever > 0, true);
+  assert.equal(multiplier(g), comboMultiplier(g) * RULES.feverMultiplier);
 });

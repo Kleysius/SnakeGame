@@ -50,14 +50,24 @@
         </div>
       </header>
 
+      <div class="fever" id="fever" aria-hidden="true">
+        <span class="fever-fill" id="fever-fill"></span>
+        <span class="fever-label">Frénésie</span>
+      </div>
+
       <main class="stage">
         <div class="board" id="board">
           <canvas id="game" aria-label="Plateau de jeu"></canvas>
 
-          <div class="combo" id="combo" aria-hidden="true">
-            <span id="combo-label">×2</span> combo
-            <span class="combo-track"><span class="combo-bar" id="combo-bar"></span></span>
+          <div class="mult" id="mult" aria-hidden="true">
+            <span class="mult-total" id="mult-total">×1</span>
+            <span class="mult-parts">
+              <span class="chip chip-combo" id="chip-combo"><span class="chip-word">combo</span> <b id="chip-combo-val">×2</b><span class="combo-track"><span class="combo-bar" id="combo-bar"></span></span></span>
+              <span class="chip chip-fever" id="chip-fever">🌈 <b>×2</b></span>
+              <span class="chip chip-spicy" id="chip-spicy">🌶️ <b>×3</b></span>
+            </span>
           </div>
+          <div class="banner" id="banner" aria-live="polite"></div>
           <div class="toast" id="toast" role="status"></div>
           <div class="countdown" id="countdown" aria-live="assertive"></div>
 
@@ -77,16 +87,45 @@
                 <svg><use href="#i-play" /></svg> Jouer
               </button>
               <p class="best" id="menu-best"></p>
-              <ul class="legend">
-                <li><img src="images/apple.svg" alt="" /> Pomme <b>150</b></li>
-                <li><img src="images/apple.svg" alt="" class="gold" /> Dorée <b>500</b></li>
-                <li><img src="images/mouse.svg" alt="" /> Souris <b>350</b></li>
-              </ul>
-              <p class="tip">Enchaîne vite pour un <b>combo</b> jusqu'à ×5 !</p>
+              <button class="btn-link" data-action="help">✨ Comment jouer · Lasso, Piment, Frénésie…</button>
               <p class="controls-hint">
                 <span class="only-desktop"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> ou <kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> · <kbd>Espace</kbd> pause · <kbd>M</kbd> son</span>
                 <span class="only-touch">Glisse sur le plateau ou utilise la croix</span>
               </p>
+            </div>
+          </section>
+
+          <section class="screen screen-help" id="screen-help" hidden aria-labelledby="help-title">
+            <div class="panel">
+              <h2 id="help-title" class="screen-title small">Comment jouer</h2>
+              <ul class="rules">
+                <li>
+                  <span class="rule-icon"><img src="images/apple.svg" alt="" /></span>
+                  <div><b>Pommes 150 · Dorées 500 · Souris 350</b><p>La souris fuit et finit par s'échapper. Attrape-la vite !</p></div>
+                </li>
+                <li>
+                  <span class="rule-icon">⚡</span>
+                  <div><b>Combo jusqu'à ×5</b><p>Enchaîne les prises avant que la jauge ne se vide.</p></div>
+                </li>
+                <li>
+                  <span class="rule-icon">🪢</span>
+                  <div><b>Lasso ×3</b><p>Encercle un objet avec ton corps (les murs comptent) : il est capturé à distance. Idéal pour piéger la souris.</p></div>
+                </li>
+                <li>
+                  <span class="rule-icon">😬</span>
+                  <div><b>Frôlement</b><p>Passe tout près de ton propre corps : points bonus et la Frénésie se charge. Le risque paie.</p></div>
+                </li>
+                <li>
+                  <span class="rule-icon"><img src="images/chili.svg" alt="" /></span>
+                  <div><b>Piment ×3</b><p>Optionnel et éphémère : tu accélères pendant quelques secondes, mais tout vaut le triple.</p></div>
+                </li>
+                <li>
+                  <span class="rule-icon">🌈</span>
+                  <div><b>Frénésie ×2</b><p>Remplis la jauge (manger, frôler, lasso) pour doubler tous les points un moment.</p></div>
+                </li>
+              </ul>
+              <p class="tip">Tout se multiplie : combo × Frénésie × Piment × Lasso… jusqu'à <b>×90</b> !</p>
+              <button class="btn btn-primary" data-action="back" data-autofocus>C'est parti</button>
             </div>
           </section>
 

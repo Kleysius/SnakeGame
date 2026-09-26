@@ -30,6 +30,19 @@ npm start            # ou l'extension Live Server de VS Code
 - **Démo** : une IA joue en fond du menu.
 - **Accessibilité** : navigation clavier, focus visibles, `prefers-reduced-motion` respecté, pause automatique quand l'onglet perd le focus.
 
+## Mécaniques avancées 🌶️
+
+Tout se multiplie entre soi : **combo (×5) × Frénésie (×2) × Piment (×3) × Lasso (×3)**, soit jusqu'à **×90** sur une seule prise. Chaque couche est limitée dans le temps ou demande de la technique, pour que le jackpot se mérite.
+
+| | Mécanique | Comment |
+| --- | --- | --- |
+| 🪢 | **Lasso ×3** | Referme ton corps autour d'un objet (les murs comptent) : il est capturé à distance. La meilleure façon de piéger une souris. |
+| 😬 | **Frôlement** | Passer au ras de son propre corps rapporte des points et charge la Frénésie. Récompensé une fois par approche (impossible à farmer en longeant son corps). |
+| 🌶️ | **Piment ×3** | Apparaît parfois à partir du niveau 2 et se fane vite. Le manger rend le serpent 30 % plus rapide pendant quelques secondes, mais tout vaut le triple. À toi de choisir. |
+| 🌈 | **Frénésie ×2** | Jauge remplie en mangeant, en frôlant et au lasso. Pleine : serpent arc-en-ciel, ligne de basse au rythme du jeu, et tous les points doublés. |
+
+Tous les réglages (probabilités, durées, multiplicateurs) sont dans `src/config.js`.
+
 ## Corrections par rapport à la v1
 
 - Faire demi-tour tuait instantanément → les demi-tours sont ignorés, et les virages rapides sont mis en file d'attente.
@@ -57,4 +70,4 @@ tests/          tests unitaires de la logique (node --test)
 npm test
 ```
 
-Astuce dev : ajouter `?autopilot` à l'URL laisse l'IA jouer une vraie partie.
+Astuce dev : ajouter `?autopilot` à l'URL laisse l'IA jouer une vraie partie (l'état du jeu est alors exposé dans `window.__snake.game`).
