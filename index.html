@@ -1,65 +1,130 @@
 <!DOCTYPE html>
-<html lang="en">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<link rel="stylesheet" href="style.css">
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
-		<title>Snake</title>
-	</head>
-	<body>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#08110b" />
+    <meta name="description" content="Snake revisité : combos, souris fuyardes, pommes dorées et mode portail." />
+    <title>Snake</title>
+    <link rel="icon" href="images/snake-head.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@400;600;800&family=Inclusive+Sans&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="src/main.js"></script>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" fill="currentColor" /></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor" /><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor" /></symbol>
+      <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.5v5a1 1 0 0 0 1 1h3l4.4 3.6a1 1 0 0 0 1.6-.8V5.7a1 1 0 0 0-1.6-.8L8 8.5H5a1 1 0 0 0-1 1Z" fill="currentColor" /><path class="waves" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /><path class="cross" d="m16.5 9.5 5 5m0-5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></symbol>
+      <symbol id="i-replay" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-5h-6v5H5a1 1 0 0 1-1-1v-8Z" fill="currentColor" /></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+    </svg>
 
+    <div class="app" data-phase="menu">
+      <header class="hud">
+        <div class="stat stat-score">
+          <img src="images/trophy.svg" alt="" width="28" height="28" />
+          <div>
+            <span class="stat-label">Score</span>
+            <span class="stat-value" id="hud-score" aria-live="off">0</span>
+          </div>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Record</span>
+          <span class="stat-value" id="hud-best">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Niveau</span>
+          <span class="stat-value" id="hud-level">–</span>
+        </div>
+        <div class="hud-actions">
+          <button class="icon-btn" id="btn-pause" data-action="pause" aria-label="Pause (Espace)" disabled>
+            <svg><use href="#i-pause" /></svg>
+          </button>
+          <button class="icon-btn" id="btn-mute" data-action="mute" aria-label="Couper le son" aria-pressed="false">
+            <svg><use href="#i-sound" /></svg>
+          </button>
+        </div>
+      </header>
 
-		<div class="container">
-			<div class="tabl">
-				<div id="score"></div>
-				<div id="food-eaten"></div>
-			</div>
-			<div id="game-board"></div>
-		</div>
+      <main class="stage">
+        <div class="board" id="board">
+          <canvas id="game" aria-label="Plateau de jeu"></canvas>
 
-		<div id="modal">
-			<div id="modal-content">
-				<h1>Snake Game</h1>
-				<p>Use Z, Q, S, D to move on desktop</p>
-				<p>Use the arrow keys to move on mobile</p>
-				<button id="startButton">
-					<i class="fa-solid fa-play fa-shake"></i>
-				</button>
-			</div>
+          <div class="combo" id="combo" aria-hidden="true">
+            <span id="combo-label">×2</span> combo
+            <span class="combo-track"><span class="combo-bar" id="combo-bar"></span></span>
+          </div>
+          <div class="toast" id="toast" role="status"></div>
+          <div class="countdown" id="countdown" aria-live="assertive"></div>
 
-			<div id="message">
-				<p>Game Over</p>
-				<button id="restartButton">
-					<i class="fa-solid fa-rotate-right fa-spin"></i>
-				</button>
-				<div id="scores">
-					<i class="fa-solid fa-trophy fa-bounce"></i>
-					<h2>Top Scores</h2>
-					<ul id="scores-list"></ul>
-				</div>
-			</div>
-		</div>
+          <section class="screen screen-menu" id="screen-menu" aria-labelledby="title">
+            <div class="panel">
+              <h1 id="title" class="logo">
+                <img src="images/snake-head.svg" alt="" />
+                <span>SNAKE</span>
+              </h1>
+              <fieldset class="modes">
+                <legend class="sr-only">Mode de jeu</legend>
+                <label><input type="radio" name="mode" value="classic" checked /><span>Classique</span></label>
+                <label><input type="radio" name="mode" value="portal" /><span>Portail</span></label>
+              </fieldset>
+              <p class="mode-hint" id="mode-hint"></p>
+              <button class="btn btn-primary" data-action="play" data-autofocus>
+                <svg><use href="#i-play" /></svg> Jouer
+              </button>
+              <p class="best" id="menu-best"></p>
+              <ul class="legend">
+                <li><img src="images/apple.svg" alt="" /> Pomme <b>150</b></li>
+                <li><img src="images/apple.svg" alt="" class="gold" /> Dorée <b>500</b></li>
+                <li><img src="images/mouse.svg" alt="" /> Souris <b>350</b></li>
+              </ul>
+              <p class="tip">Enchaîne vite pour un <b>combo</b> jusqu'à ×5 !</p>
+              <p class="controls-hint">
+                <span class="only-desktop"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> ou <kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> · <kbd>Espace</kbd> pause · <kbd>M</kbd> son</span>
+                <span class="only-touch">Glisse sur le plateau ou utilise la croix</span>
+              </p>
+            </div>
+          </section>
 
-		<div id="controls">
-			<div class="upDown">
-				<button id="upButton">
-					<i class="fas fa-arrow-up"></i>
-				</button>
-				<button id="downButton">
-					<i class="fas fa-arrow-down"></i>
-				</button>
-			</div>
-			<div class="leftRight">
-				<button id="leftButton">
-					<i class="fas fa-arrow-left"></i>
-				</button>
-				<button id="rightButton">
-					<i class="fas fa-arrow-right"></i>
-				</button>
-			</div>
-		</div>
+          <section class="screen" id="screen-pause" hidden aria-labelledby="pause-title">
+            <div class="panel">
+              <h2 id="pause-title" class="screen-title">Pause</h2>
+              <button class="btn btn-primary" data-action="resume" data-autofocus>
+                <svg><use href="#i-play" /></svg> Reprendre
+              </button>
+              <button class="btn btn-ghost" data-action="menu"><svg><use href="#i-home" /></svg> Menu</button>
+            </div>
+          </section>
 
-		<script src="script.js"></script>
-	</body>
+          <section class="screen" id="screen-over" hidden aria-labelledby="over-title">
+            <div class="panel">
+              <h2 id="over-title" class="screen-title danger">Game Over</h2>
+              <p class="final-score"><span id="over-score">0</span> pts</p>
+              <p class="record-badge" id="over-record" hidden>🎉 Nouveau record !</p>
+              <dl class="stats" id="over-stats"></dl>
+              <h3 class="board-title">Meilleurs scores</h3>
+              <ol class="leaderboard" id="over-board"></ol>
+              <div class="row">
+                <button class="btn btn-primary" data-action="play" data-autofocus>
+                  <svg><use href="#i-replay" /></svg> Rejouer
+                </button>
+                <button class="btn btn-ghost" data-action="menu"><svg><use href="#i-home" /></svg> Menu</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <nav class="dpad" id="dpad" aria-label="Contrôles directionnels">
+        <button data-dir="up" aria-label="Haut"><svg><use href="#i-arrow" /></svg></button>
+        <button data-dir="left" aria-label="Gauche"><svg><use href="#i-arrow" /></svg></button>
+        <button data-dir="right" aria-label="Droite"><svg><use href="#i-arrow" /></svg></button>
+        <button data-dir="down" aria-label="Bas"><svg><use href="#i-arrow" /></svg></button>
+      </nav>
+    </div>
+  </body>
 </html>
