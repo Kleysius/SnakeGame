@@ -1,0 +1,11 @@
+{
+  "name": "snake-game",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Snake revisité : rendu canvas fluide, combos, souris fuyardes, pommes dorées et mode portail.",
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes serve -l 5501 .",
+    "test": "node --test"
+  }
+}
