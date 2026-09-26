@@ -7,7 +7,7 @@ const OPPOSITE = { up: "down", down: "up", left: "right", right: "left" };
 
 export function autopilot(state) {
   const head = state.snake[0];
-  const target = state.mouse ?? state.food;
+  const target = state.mouse ?? state.chili ?? state.food;
   const blocked = new Set(state.snake.slice(0, -1).map(key));
   let best = state.dir;
   let bestValue = -Infinity;

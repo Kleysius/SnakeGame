@@ -12,6 +12,7 @@ export const ITEMS = {
   apple: { points: 150, grow: 1 },
   golden: { points: 500, grow: 3 },
   mouse: { points: 350, grow: 2 },
+  chili: { points: 100, grow: 1 },
 };
 
 export const RULES = {
@@ -25,6 +26,28 @@ export const RULES = {
   mouseLifetime: 55, // ticks
   mouseMoveEvery: 4, // ticks
   maxQueuedTurns: 3,
+
+  // 🌶️ Chili: optional risk. Eat it → faster snake, but every point ×3.
+  chiliChance: 0.2,
+  chiliMinLevel: 2,
+  chiliLifetime: 60, // ticks before it withers
+  spicyTicks: 55,
+  spicyMultiplier: 3,
+  spicySpeed: 0.72, // tick duration factor while spicy
+
+  // 🪢 Lasso: close your body around an item to capture it remotely.
+  lassoMaxPocket: 20, // max cells of the enclosed pocket
+  lassoMultiplier: 3,
+
+  // 😬 Near miss: brushing past your own body (not the neck).
+  nearMissPoints: 30,
+  nearMissMinIndex: 4,
+  nearMissCooldown: 6, // ticks
+
+  // 🌈 Frenzy: gauge filled by bold play; when full every point is doubled.
+  feverTicks: 75,
+  feverMultiplier: 2,
+  feverGain: { eat: 0.12, nearMiss: 0.07, lasso: 0.3 },
 };
 
 // Tick duration in ms for a given level: starts relaxed, speeds up, capped.

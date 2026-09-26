@@ -30,6 +30,10 @@ export class Renderer {
 
     this.apple = loadImage("images/apple.svg");
     this.mouseImg = loadImage("images/mouse.svg");
+    this.chiliImg = loadImage("images/chili.svg");
+    this.lassos = [];
+    this.sparks = [];
+    this.chiliPos = null;
     this.goldenApple = null;
     this.apple.addEventListener("load", () => this.buildGoldenApple());
 
@@ -169,6 +173,8 @@ export class Renderer {
     this.particles.length = 0;
     this.floaters.length = 0;
     this.ripples.length = 0;
+    this.lassos.length = 0;
+    this.sparks.length = 0;
     this.mousePos = null;
   }
 
@@ -189,9 +195,13 @@ export class Renderer {
     if (this.background) ctx.drawImage(this.background, 0, 0, W, H);
 
     if (state) {
+      this.drawAmbience(state, time);
+      this.drawLassos(dt);
       this.drawFood(state, time);
       this.drawMouse(state, dt, time);
+      this.drawChili(state, time);
       this.drawSnake(state, prevSnake, alpha, time, dying);
+      if (state.alive && state.spicy > 0) this.emitFlames(state, dt);
     }
     this.drawEffects(dt);
     ctx.restore();
@@ -301,8 +311,12 @@ export class Renderer {
 
     const dead = !state.alive && !state.won;
     const blink = dead && Math.floor(dying * 10) % 2 === 0;
+    const fever = state.fever > 0;
+    const spicy = state.spicy > 0;
     const color = (t) => {
       if (dead) return blink ? "#ff6b6b" : `hsl(0, 0%, ${55 - t * 20}%)`;
+      if (fever) return `hsl(${(time * 160 + t * 320) % 360}, 90%, ${62 - t * 10}%)`;
+      if (spicy) return `hsl(${8 + t * 38 + Math.sin(time * 20 + t * 9) * 6}, 95%, ${58 - t * 14}%)`;
       return `hsl(${80 + t * 70}, ${75 - t * 15}%, ${55 - t * 17}%)`;
     };
     const width = (t) => cell * (0.8 - t * 0.28);
@@ -311,7 +325,13 @@ export class Renderer {
     ctx.lineJoin = "round";
 
     // Glow pass.
-    ctx.strokeStyle = dead ? "rgba(255,80,80,0.18)" : "rgba(160,196,49,0.16)";
+    ctx.strokeStyle = dead
+      ? "rgba(255,80,80,0.18)"
+      : fever
+        ? `hsla(${(time * 160) % 360}, 100%, 60%, 0.28)`
+        : spicy
+          ? "rgba(255,110,40,0.3)"
+          : "rgba(160,196,49,0.16)";
     ctx.lineWidth = cell * 1.15;
     ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].y);
@@ -441,8 +461,162 @@ export class Renderer {
     ctx.restore();
   }
 
+  drawAmbience(state, time) {
+    const { ctx, cell } = this;
+    const W = this.cols * cell;
+    const H = this.rows * cell;
+    if (state.fever > 0) {
+      // Slowly rotating rainbow wash + glowing rainbow frame.
+      const hue = (time * 90) % 360;
+      const g = ctx.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, `hsla(${hue}, 100%, 60%, 0.10)`);
+      g.addColorStop(0.5, `hsla(${hue + 120}, 100%, 60%, 0.06)`);
+      g.addColorStop(1, `hsla(${hue + 240}, 100%, 60%, 0.10)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      const ending = state.fever < 15 && Math.floor(time * 8) % 2 === 0;
+      ctx.strokeStyle = `hsla(${hue}, 100%, 65%, ${ending ? 0.2 : 0.7})`;
+      ctx.lineWidth = cell * 0.25;
+      ctx.strokeRect(0, 0, W, H);
+    }
+    if (state.spicy > 0) {
+      // Heat vignette pulsing like a racing heartbeat.
+      const beat = 0.5 + 0.5 * Math.sin(time * 14);
+      const v = ctx.createRadialGradient(W / 2, H / 2, W * 0.3, W / 2, H / 2, W * 0.75);
+      v.addColorStop(0, "rgba(255,80,0,0)");
+      v.addColorStop(1, `rgba(255,70,0,${0.18 + beat * 0.14})`);
+      ctx.fillStyle = v;
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  drawChili(state, time) {
+    const c = state.chili;
+    const { ctx, cell } = this;
+    if (!c) {
+      this.chiliPos = null;
+      return;
+    }
+    if (!this.chiliPos || this.chiliPos.x !== c.x || this.chiliPos.y !== c.y) this.chiliPos = { x: c.x, y: c.y, born: time };
+    const cx = (c.x + 0.5) * cell;
+    const cy = (c.y + 0.5) * cell;
+    const ratio = c.ttl / c.maxTtl;
+    const urgent = ratio < 0.3;
+    if (urgent && Math.floor(time * 8) % 2 === 0) ctx.globalAlpha = 0.45;
+
+    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, cell * 1.3);
+    glow.addColorStop(0, "rgba(255, 90, 30, 0.5)");
+    glow.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(cx - cell * 1.3, cy - cell * 1.3, cell * 2.6, cell * 2.6);
+
+    const pop = easeOutBack(Math.min(1, (time - this.chiliPos.born) / 0.35));
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(Math.sin(time * 9) * 0.18);
+    const size = cell * 1.15 * pop;
+    if (this.chiliImg.complete) ctx.drawImage(this.chiliImg, -size / 2, -size / 2, size, size);
+    ctx.restore();
+
+    // Rising heat wisps.
+    ctx.strokeStyle = "rgba(255, 200, 150, 0.45)";
+    ctx.lineWidth = Math.max(1, cell * 0.06);
+    for (let i = 0; i < 2; i++) {
+      const t = (time * 0.9 + i * 0.5) % 1;
+      const x = cx + (i ? 1 : -1) * cell * 0.2;
+      const y = cy - cell * 0.5 - t * cell * 0.8;
+      ctx.globalAlpha = (1 - t) * (urgent ? 0.4 : 1);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + Math.sin(time * 6 + i) * cell * 0.2, y - cell * 0.15, x, y - cell * 0.3);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = urgent && Math.floor(time * 8) % 2 === 0 ? 0.45 : 1;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, cell * 0.72, -Math.PI / 2, -Math.PI / 2 + TAU * ratio);
+    ctx.strokeStyle = urgent ? "#ff5a6e" : "rgba(255,160,90,0.85)";
+    ctx.lineWidth = Math.max(1.5, cell * 0.08);
+    ctx.lineCap = "round";
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  emitFlames(state, dt) {
+    if (reducedMotion.matches || Math.random() > dt * 45) return;
+    const { cell } = this;
+    const tail = state.snake[state.snake.length - 1];
+    const head = state.snake[0];
+    for (const c of [tail, head]) {
+      this.particles.push({
+        x: (c.x + 0.2 + Math.random() * 0.6) * cell,
+        y: (c.y + 0.2 + Math.random() * 0.6) * cell,
+        vx: (Math.random() - 0.5) * cell,
+        vy: -cell * (1 + Math.random() * 2),
+        life: 1,
+        decay: 2.2,
+        size: cell * (0.1 + Math.random() * 0.12),
+        color: Math.random() < 0.5 ? "#ff7a1a" : "#ffd23f",
+      });
+    }
+  }
+
+  drawLassos(dt) {
+    const { ctx, cell } = this;
+    for (let i = this.lassos.length - 1; i >= 0; i--) {
+      const l = this.lassos[i];
+      l.life -= dt * 0.9;
+      if (l.life <= 0) {
+        this.lassos.splice(i, 1);
+        continue;
+      }
+      ctx.globalAlpha = l.life * 0.55;
+      ctx.fillStyle = "#ffd23f";
+      const pad = cell * 0.08;
+      for (const c of l.cells) {
+        ctx.beginPath();
+        ctx.roundRect?.(c.x * cell + pad, c.y * cell + pad, cell - pad * 2, cell - pad * 2, cell * 0.2);
+        if (!ctx.roundRect) ctx.rect(c.x * cell + pad, c.y * cell + pad, cell - pad * 2, cell - pad * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  lasso(cells) {
+    this.lassos.push({ cells, life: 1 });
+    for (const c of cells) this.burst(c.x, c.y, "#ffd23f", 5, 0.6);
+  }
+
+  spark(x1, y1, x2, y2) {
+    const { cell } = this;
+    this.sparks.push({ x1: (x1 + 0.5) * cell, y1: (y1 + 0.5) * cell, x2: (x2 + 0.5) * cell, y2: (y2 + 0.5) * cell, life: 1 });
+  }
+
   drawEffects(dt) {
     const { ctx, cell } = this;
+
+    // Near-miss sparks: a short jittery electric arc.
+    for (let i = this.sparks.length - 1; i >= 0; i--) {
+      const sp = this.sparks[i];
+      sp.life -= dt * 3;
+      if (sp.life <= 0) {
+        this.sparks.splice(i, 1);
+        continue;
+      }
+      ctx.globalAlpha = sp.life;
+      ctx.strokeStyle = "#a5f3fc";
+      ctx.lineWidth = Math.max(1.5, cell * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(sp.x1, sp.y1);
+      for (let k = 1; k < 5; k++) {
+        const t = k / 5;
+        ctx.lineTo(sp.x1 + (sp.x2 - sp.x1) * t + (Math.random() - 0.5) * cell * 0.4, sp.y1 + (sp.y2 - sp.y1) * t + (Math.random() - 0.5) * cell * 0.4);
+      }
+      ctx.lineTo(sp.x2, sp.y2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
 
     for (let i = this.ripples.length - 1; i >= 0; i--) {
       const rp = this.ripples[i];
